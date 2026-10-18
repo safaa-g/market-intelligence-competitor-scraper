@@ -36,8 +36,6 @@ def clean_reviews(df):
 
     return df
 
-
-
 def save_to_database(df, db_path="competitor_intelligence_clean.db"):
     """Save only new reviews to the SQLite database."""
 
@@ -45,7 +43,6 @@ def save_to_database(df, db_path="competitor_intelligence_clean.db"):
         return 0
 
     df = df.copy()
-
     df = df.drop_duplicates(
         subset=["app_id", "review_id"],
         keep="first"
@@ -55,14 +52,12 @@ def save_to_database(df, db_path="competitor_intelligence_clean.db"):
     df["review_id"] = df["review_id"].astype(str)
 
     with sqlite3.connect(db_path) as connection:
-
-        # Create the reviews table if it does not exist.
-        df.head(0).to_sql(
-            "reviews",
-            connection,
-            if_exists="fail",
-            index=False
-        ) if not table_exists(connection, "reviews") else None
+        if not table_exists(connection, "reviews"):
+            df.head(0).to_sql(
+                "reviews",
+                connection,
+                index=False
+            )
 
         existing = pd.read_sql_query(
             "SELECT app_id, review_id FROM reviews",
@@ -97,7 +92,6 @@ def save_to_database(df, db_path="competitor_intelligence_clean.db"):
 
 
 def table_exists(connection, table_name):
-    """Check whether a SQLite table exists."""
     result = connection.execute(
         "SELECT name FROM sqlite_master "
         "WHERE type='table' AND name=?",
