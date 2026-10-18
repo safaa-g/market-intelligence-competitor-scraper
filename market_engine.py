@@ -37,14 +37,15 @@ def clean_reviews(df):
     return df
 
 
+
 def save_to_database(df, db_path="competitor_intelligence_clean.db"):
     """Save only new reviews to the SQLite database."""
 
     if df.empty:
-        print("No reviews to save.")
         return 0
 
     df = df.copy()
+
     df = df.drop_duplicates(
         subset=["app_id", "review_id"],
         keep="first"
@@ -54,6 +55,15 @@ def save_to_database(df, db_path="competitor_intelligence_clean.db"):
     df["review_id"] = df["review_id"].astype(str)
 
     with sqlite3.connect(db_path) as connection:
+
+        # Create the reviews table if it does not exist.
+        df.head(0).to_sql(
+            "reviews",
+            connection,
+            if_exists="fail",
+            index=False
+        ) if not table_exists(connection, "reviews") else None
+
         existing = pd.read_sql_query(
             "SELECT app_id, review_id FROM reviews",
             connection
@@ -83,9 +93,17 @@ def save_to_database(df, db_path="competitor_intelligence_clean.db"):
                 index=False
             )
 
-    print(f"New unique reviews saved: {len(new_reviews)}")
     return len(new_reviews)
-    
+
+
+def table_exists(connection, table_name):
+    """Check whether a SQLite table exists."""
+    result = connection.execute(
+        "SELECT name FROM sqlite_master "
+        "WHERE type='table' AND name=?",
+        (table_name,)
+    )
+    return result.fetchone() is not None
 
 
 
